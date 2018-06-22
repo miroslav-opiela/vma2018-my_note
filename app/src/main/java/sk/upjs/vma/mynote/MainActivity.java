@@ -1,9 +1,15 @@
 package sk.upjs.vma.mynote;
 
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.app.LoaderManager;
+import android.content.AsyncQueryHandler;
+import android.content.ContentValues;
 import android.content.CursorLoader;
+import android.content.DialogInterface;
 import android.content.Loader;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -12,8 +18,10 @@ import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.EditText;
 import android.widget.GridView;
 import android.widget.SimpleCursorAdapter;
+import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity
         implements LoaderManager.LoaderCallbacks<Cursor> {
@@ -28,15 +36,6 @@ public class MainActivity extends AppCompatActivity
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
 
         GridView notesGridView = findViewById(R.id.notesGridView);
         String[] from = {MyNoteContract.Note.DESCRIPTION};
@@ -84,10 +83,57 @@ public class MainActivity extends AppCompatActivity
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor cursor) {
         adapter.swapCursor(cursor);
+        cursor.setNotificationUri(getContentResolver(), MyNoteContract.Note.CONTENT_URI);
     }
 
     @Override
     public void onLoaderReset(Loader<Cursor> loader) {
         adapter.swapCursor(null);
+    }
+
+    private void createNewNote() {
+        final EditText descriptionEditText = new EditText(this);
+        new AlertDialog.Builder(this)
+                .setTitle("Add a new note")
+                .setView(descriptionEditText)
+                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        String description = descriptionEditText.getText().toString();
+                        insertIntoContentProvider(description);
+                    }
+                })
+                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        dialogInterface.dismiss();
+                    }
+                })
+                .show();
+    }
+
+    private void insertIntoContentProvider(String description) {
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(MyNoteContract.Note.DESCRIPTION, description);
+        // normal
+        //getContentResolver().insert(MyNoteContract.Note.CONTENT_URI, contentValues);
+        // asynchronne
+        // abstraktna trieda
+        AsyncQueryHandler queryHandler = new AsyncQueryHandler(getContentResolver()) {
+            @Override
+            protected void onInsertComplete(int token, Object cookie, Uri uri) {
+                Toast.makeText(MainActivity.this, "Saved " + cookie.toString(), Toast.LENGTH_LONG).show();
+            }
+        };
+        queryHandler.startInsert(0, description, MyNoteContract.Note.CONTENT_URI, contentValues);
+    }
+
+
+
+    public void onFabClick(View view) {
+        createNewNote();
+        /*ContentValues contentValues = new ContentValues();
+        contentValues.put(MyNoteContract.Note.DESCRIPTION, "Test this");
+        getContentResolver().insert(MyNoteContract.Note.CONTENT_URI, contentValues);*/
     }
 }

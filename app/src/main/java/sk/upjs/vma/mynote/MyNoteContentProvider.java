@@ -5,6 +5,7 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
+import android.util.Log;
 
 public class MyNoteContentProvider extends ContentProvider {
 
@@ -40,8 +41,17 @@ public class MyNoteContentProvider extends ContentProvider {
 
     @Override
     public Uri insert(Uri uri, ContentValues values) {
-        // TODO: Implement this to handle requests to insert a new row.
-        throw new UnsupportedOperationException("Not yet implemented");
+        SQLiteDatabase db = databaseOpenHelper.getWritableDatabase();
+
+        Log.d("PROVIDER", values.toString());
+
+        long id = db.insert(MyNoteContract.Note.TABLE_NAME, null, values);
+
+        //getContext().getContentResolver().notifyChange(JotContract.Note.CONTENT_URI, NO_CONTENT_OBSERVER);
+
+        getContext().getContentResolver().notifyChange(MyNoteContract.Note.CONTENT_URI, null);
+
+        return Uri.withAppendedPath(MyNoteContract.Note.CONTENT_URI, String.valueOf(id));
     }
 
 
